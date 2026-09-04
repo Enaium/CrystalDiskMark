@@ -1,0 +1,3 @@
+headers = fsstat.h
+package = platform.fsstat
+headerFilter = fsstat.h

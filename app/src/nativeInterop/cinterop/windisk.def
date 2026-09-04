@@ -1,0 +1,4 @@
+headers = windisk.h
+package = platform.windisk
+headerFilter = windisk.h
+compilerOpts.mingw_x64 = -D_WIN32_WINNT=0x0600

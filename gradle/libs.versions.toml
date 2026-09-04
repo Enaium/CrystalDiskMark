@@ -1,0 +1,21 @@
+[versions]
+kotlin = "2.4.10"
+agp = "9.3.2"
+sdl-kmp = "1.0.10"
+imgui-kmp = "1.0.12"
+sysinfo-kmp = "1.0.1"
+filekit = "0.15.0"
+kotlinx-coroutines = "1.11.0"
+
+[libraries]
+sdl-kmp = { module = "cn.enaium.sdl:sdl-kmp", version.ref = "sdl-kmp" }
+imgui-kmp = { module = "cn.enaium.imgui:imgui-kmp", version.ref = "imgui-kmp" }
+sysinfo-kmp = { module = "cn.enaium:sysinfo-kmp", version.ref = "sysinfo-kmp" }
+filekit-core = { module = "io.github.vinceglb:filekit-core", version.ref = "filekit" }
+filekit-dialogs = { module = "io.github.vinceglb:filekit-dialogs", version.ref = "filekit" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+
+[plugins]
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+android-application = { id = "com.android.application", version.ref = "agp" }
