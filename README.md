@@ -45,25 +45,6 @@ World profile variants).
 - File dialogs: FileKit `0.15.0`
 - Kotlin `2.4.10`, AGP `9.3.2`, kotlinx-coroutines `1.11.0`
 
-### Local imgui-kmp Patch
-
-The font API used here (glyph ranges via `ImFontConfig.glyphRanges`,
-`ImFontGlyphRangesBuilder`) is not yet on Maven Central, so
-`settings.gradle.kts` adds `mavenLocal()` ahead of `mavenCentral()`.
-Before building, install the patched library locally:
-
-```bash
-cd <imgui-kmp-repo>
-./gradlew :imgui-kmp:publishToMavenLocal
-```
-
-The patch adds:
-- `ImFontConfig.glyphRanges` (mirrors `ImFontConfig::GlyphRanges`)
-- `ImFontGlyphRangesBuilder` and `ImFontGlyphRanges` presets
-  (mirrors `ImFontAtlas::GetGlyphRanges*`)
-- Static storage for range lists in the C bridge (they must outlive the
-  `addFont` call until the atlas is built)
-
 ## Building
 
 ### Compile all 14 targets
