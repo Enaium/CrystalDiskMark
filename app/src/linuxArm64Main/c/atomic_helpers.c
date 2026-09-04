@@ -1,63 +1,40 @@
-/* Freestanding aarch64 outline-atomic helpers (GCC 9+ libgcc provides
- * these; Kotlin/Native's bundled GCC 8.3 sysroot does not). The sdl-kmp
- * linuxArm64 SDL3 static library is built with GCC and references them.
+/*
+ * AArch64 libgcc outline-atomic helpers.
+ *
+ * sdl-kmp's linuxArm64 SDL3 static library is built with GCC and references
+ * the libgcc atomic helper functions (`__aarch64_cas4_sync` and friends) that
+ * provide compare-and-swap / add / swap with `_sync` (seq_cst) semantics.
+ * Kotlin/Native's bundled GCC 8.3 sysroot predates these helpers (they landed
+ * in GCC 9 with the LSE out-of-line atomics work), so lld cannot resolve them.
+ *
+ * Provide the subset SDL3 actually uses, implemented with __atomic builtins.
+ * K/N's own clang inlines these to ldaxr/stxr loops for armv8-a, so no further
+ * runtime dependency is introduced. Return values match the libgcc ABI: the
+ * value read before the operation (callers compare it against `expected`).
  */
-typedef unsigned char uint8_t;
-typedef unsigned int uint32_t;
-typedef unsigned long uint64_t;
 
-static inline uint64_t __atomic_load_8(volatile uint64_t *p) {
-    return __atomic_load_n(p, __ATOMIC_SEQ_CST);
+int __aarch64_cas4_sync(int expected, int desired, int *ptr)
+{
+    int old = expected;
+    __atomic_compare_exchange_n(ptr, &old, desired, 0,
+                                __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+    return old;
 }
 
-uint64_t __aarch64_ldadd4_acq_rel(uint32_t *p, uint32_t val) {
-    return (uint64_t)__atomic_fetch_add(p, val, __ATOMIC_ACQ_REL);
+long __aarch64_cas8_sync(long expected, long desired, long *ptr)
+{
+    long old = expected;
+    __atomic_compare_exchange_n(ptr, &old, desired, 0,
+                                __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+    return old;
 }
 
-uint64_t __aarch64_ldadd8_acq_rel(uint64_t *p, uint64_t val) {
-    return __atomic_fetch_add(p, val, __ATOMIC_ACQ_REL);
+int __aarch64_ldadd4_sync(int val, int *ptr)
+{
+    return __atomic_fetch_add(ptr, val, __ATOMIC_SEQ_CST);
 }
 
-uint64_t __aarch64_ldadd4_relax(uint32_t *p, uint32_t val) {
-    return (uint64_t)__atomic_fetch_add(p, val, __ATOMIC_RELAXED);
-}
-
-uint64_t __aarch64_ldadd8_relax(uint64_t *p, uint64_t val) {
-    return __atomic_fetch_add(p, val, __ATOMIC_RELAXED);
-}
-
-uint64_t __aarch64_ldclr4_acq_rel(uint32_t *p, uint32_t val) {
-    return (uint64_t)__atomic_fetch_and(p, ~val, __ATOMIC_ACQ_REL);
-}
-
-uint64_t __aarch64_ldclr8_acq_rel(uint64_t *p, uint64_t val) {
-    return __atomic_fetch_and(p, ~val, __ATOMIC_ACQ_REL);
-}
-
-uint64_t __aarch64_ldset4_acq_rel(uint32_t *p, uint32_t val) {
-    return (uint64_t)__atomic_fetch_or(p, val, __ATOMIC_ACQ_REL);
-}
-
-uint64_t __aarch64_ldset8_acq_rel(uint64_t *p, uint64_t val) {
-    return __atomic_fetch_or(p, val, __ATOMIC_ACQ_REL);
-}
-
-uint64_t __aarch64_cas4_acq_rel(uint32_t *p, uint32_t expected, uint32_t desired) {
-    __atomic_compare_exchange_n(p, &expected, desired, 0, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE);
-    return expected;
-}
-
-uint64_t __aarch64_cas8_acq_rel(uint64_t *p, uint64_t expected, uint64_t desired) {
-    __atomic_compare_exchange_n(p, &expected, desired, 0, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE);
-    return expected;
-}
-
-uint64_t __aarch64_cas4_relax(uint32_t *p, uint32_t expected, uint32_t desired) {
-    __atomic_compare_exchange_n(p, &expected, desired, 0, __ATOMIC_RELAXED, __ATOMIC_RELAXED);
-    return expected;
-}
-
-uint64_t __aarch64_cas8_relax(uint64_t *p, uint64_t expected, uint64_t desired) {
-    __atomic_compare_exchange_n(p, &expected, desired, 0, __ATOMIC_RELAXED, __ATOMIC_RELAXED);
-    return expected;
+int __aarch64_swp4_sync(int val, int *ptr)
+{
+    return __atomic_exchange_n(ptr, val, __ATOMIC_SEQ_CST);
 }
