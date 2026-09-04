@@ -13,9 +13,6 @@ plugins {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
-        // Local patched imgui-kmp (glyph-range API with static storage);
-        // takes precedence over the Central 1.0.12 artifact.
-        mavenLocal()
         google()
         mavenCentral()
     }
