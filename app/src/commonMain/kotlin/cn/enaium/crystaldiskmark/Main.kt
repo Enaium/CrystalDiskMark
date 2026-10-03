@@ -846,22 +846,98 @@ private fun findSystemFont(): String? {
             )
         Platform.os == "linux" ->
             listOf(
-                "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-                "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+                // TrueType-outline fonts first: imgui's stb rasterizer
+                // cannot parse CFF2 outlines, which is what Noto Sans CJK
+                // ships with, so keep the Noto collections as a last
+                // resort for systems that feature nothing else.
                 "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
                 "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
                 "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
+                "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+                "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+            )
+        Platform.os == "android" ->
+            listOf(
+                // Xiaomi ships MiSans (variable, TrueType); AOSP ships Noto
+                // Sans CJK as a CFF2 collection, which stb cannot parse, so
+                // it must never win over a TrueType file (see the outline
+                // sniff in [fontHasStbOutlines]).
+                "/system/fonts/MiSansVF.ttf",
+                "/system/fonts/NotoSansSC-Regular.ttf",
+                "/system/fonts/NotoSansCJKsc-Regular.ttf",
+                "/system/fonts/DroidSansFallbackFull.ttf",
+                "/system/fonts/DroidSansFallback.ttf",
+                "/system/fonts/NotoSansCJK-Regular.ttc",
+                "/system/fonts/NotoSansCJKsc-Regular.otf",
+                "/system/fonts/NotoSansSC-Regular.otf",
             )
         else -> emptyList()
     }
-    return candidates.firstOrNull { platformIo().fileExists(it) }
+    return candidates.firstOrNull { platformIo().fileExists(it) && fontHasStbOutlines(it) }
 }
+
+/**
+ * True when the first face of [path] uses outlines imgui's stb rasterizer
+ * can build: TrueType (`glyf` + `loca`) or CFF1 (`CFF `). CFF2-only
+ * collections (Noto Sans CJK on recent Android) parse as far as
+ * `stbtt_InitFont` and then make ImFontAtlas silently fall back to its
+ * 13px built-in font, which renders CJK as tiny '?' marks — so such
+ * files must be rejected up front and the next candidate tried.
+ */
+private fun fontHasStbOutlines(path: String): Boolean {
+    val data = platformIo().readFileHeader(path, 64 * 1024) ?: return false
+    var face = 0
+    if (data.size >= 12 &&
+        data[0] == 't'.code.toByte() && data[1] == 't'.code.toByte() &&
+        data[2] == 'c'.code.toByte() && data[3] == 'f'.code.toByte()
+    ) {
+        face = u32be(data, 12)
+    }
+    if (face < 0 || face + 12 > data.size) return false
+    val numTables = u16be(data, face + 4)
+    var cmap = false
+    var head = false
+    var hhea = false
+    var hmtx = false
+    var glyf = false
+    var loca = false
+    var cff1 = false
+    for (i in 0 until numTables) {
+        val rec = face + 12 + 16 * i
+        if (rec + 4 > data.size) break
+        when (
+            charArrayOf(
+                data[rec].toInt().toChar(),
+                data[rec + 1].toInt().toChar(),
+                data[rec + 2].toInt().toChar(),
+                data[rec + 3].toInt().toChar(),
+            ).concatToString()
+        ) {
+            "cmap" -> cmap = true
+            "head" -> head = true
+            "hhea" -> hhea = true
+            "hmtx" -> hmtx = true
+            "glyf" -> glyf = true
+            "loca" -> loca = true
+            "CFF " -> cff1 = true
+        }
+    }
+    // Mirrors the tables stbtt_InitFont insists on.
+    return cmap && head && hhea && hmtx && ((glyf && loca) || cff1)
+}
+
+private fun u16be(b: ByteArray, at: Int): Int =
+    ((b[at].toInt() and 0xFF) shl 8) or (b[at + 1].toInt() and 0xFF)
+
+private fun u32be(b: ByteArray, at: Int): Int =
+    (u16be(b, at) shl 16) or u16be(b, at + 2)
 
 private object Platform {
     val os: String
         get() {
             val name = platformIo().osName().lowercase()
             return when {
+                name.contains("android") -> "android"
                 name.contains("mac") || name.contains("darwin") -> "macos"
                 name.contains("win") -> "windows"
                 name.contains("linux") -> "linux"

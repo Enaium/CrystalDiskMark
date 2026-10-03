@@ -19,4 +19,7 @@ internal expect object NativeFileOps {
     fun fileSize(path: String): Long
     fun readTextFile(path: String): String?
     fun writeTextFile(path: String, content: String)
+
+    /** Reads up to [maxBytes] from the start of [path] (read-only). */
+    fun readHeader(path: String, maxBytes: Int): ByteArray?
 }

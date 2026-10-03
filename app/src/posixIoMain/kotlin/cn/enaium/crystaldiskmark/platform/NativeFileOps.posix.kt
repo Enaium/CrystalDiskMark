@@ -119,4 +119,21 @@ internal actual object NativeFileOps {
             close(fd)
         }
     }
+
+    actual fun readHeader(path: String, maxBytes: Int): ByteArray? {
+        val fd = open(path, O_RDONLY)
+        if (fd < 0) return null
+        try {
+            val buf = ByteArray(maxBytes)
+            var off = 0
+            while (off < buf.size) {
+                val n = buf.usePinned { read(fd, it.addressOf(off), (buf.size - off).toULong()) }
+                if (n <= 0L) break
+                off += n.toInt()
+            }
+            return if (off == 0) null else buf.copyOf(off)
+        } finally {
+            close(fd)
+        }
+    }
 }

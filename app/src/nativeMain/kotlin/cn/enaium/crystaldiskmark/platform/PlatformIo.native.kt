@@ -74,6 +74,8 @@ object NativePlatformIo : PlatformIo {
 
     override fun readTextFile(path: String): String? = NativeFileOps.readTextFile(path)
 
+    override fun readFileHeader(path: String, maxBytes: Int): ByteArray? = NativeFileOps.readHeader(path, maxBytes)
+
     override fun writeTextFile(path: String, content: String) = NativeFileOps.writeTextFile(path, content)
 
     override fun fileSize(path: String): Long = NativeFileOps.fileSize(path)

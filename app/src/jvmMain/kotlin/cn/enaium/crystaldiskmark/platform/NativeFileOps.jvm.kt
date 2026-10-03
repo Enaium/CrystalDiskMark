@@ -63,6 +63,25 @@ internal actual object NativeFileOps {
         return f.readText(Charsets.UTF_8)
     }
 
+    actual fun readHeader(path: String, maxBytes: Int): ByteArray? {
+        val f = File(path)
+        if (!f.exists()) return null
+        return try {
+            f.inputStream().use { input ->
+                val buf = ByteArray(maxBytes)
+                var off = 0
+                while (off < buf.size) {
+                    val n = input.read(buf, off, buf.size - off)
+                    if (n <= 0) break
+                    off += n
+                }
+                if (off == 0) null else buf.copyOf(off)
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     actual fun writeTextFile(path: String, content: String) {
         File(path).writeText(content, Charsets.UTF_8)
     }

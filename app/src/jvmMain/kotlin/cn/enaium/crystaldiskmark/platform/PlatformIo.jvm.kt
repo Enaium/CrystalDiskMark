@@ -84,6 +84,8 @@ object JvmPlatformIo : PlatformIo {
         return f.readText(Charsets.UTF_8)
     }
 
+    override fun readFileHeader(path: String, maxBytes: Int): ByteArray? = NativeFileOps.readHeader(path, maxBytes)
+
     override fun writeTextFile(path: String, content: String) {
         File(path).writeText(content, Charsets.UTF_8)
     }

@@ -33,17 +33,17 @@ World profile variants).
 - JDK 17+ (JVM target is 17)
 - Android SDK (for the APK) with `sdk.dir` in `local.properties`
 - Kotlin/Native toolchain: downloaded automatically on first native build
-  (Kotlin 2.4.10; `~/.konan`)
+  (Kotlin 2.4.20; `~/.konan`)
 - macOS/Linux host for Android Native builds (the NDK-based JNI/Android
   toolchain is not supported from a Windows host)
 
 ## Dependencies
 
-- UI: [imgui-kmp](https://github.com/enaium/imgui-kmp) `1.0.12`
-- Window/input/rendering: [sdl-kmp](https://github.com/enaium/sdl-kmp) `1.0.10`
+- UI: [imgui-kmp](https://github.com/enaium/imgui-kmp) `1.0.16`
+- Window/input/rendering: [sdl-kmp](https://github.com/enaium/sdl-kmp) `1.0.13`
 - System info: [sysinfo-kmp](https://github.com/enaium/sysinfo-kmp) `1.0.1`
-- File dialogs: FileKit `0.15.0`
-- Kotlin `2.4.10`, AGP `9.3.2`, kotlinx-coroutines `1.11.0`
+- File dialogs: FileKit `0.16.0`
+- Kotlin `2.4.20`, AGP `9.4.1`, kotlinx-coroutines `1.11.0`
 
 ## Building
 
@@ -151,6 +151,19 @@ and the Win32 disk API (`windisk.def`).
   `ImFontGlyphRangesBuilder`, and caps `rasterizerDensity` at 1.25x.
   Loading the full CJK ideograph block balloons the atlas past GPU texture
   limits on Retina and drops glyphs (`?`).
+- **CJK font selection**: candidates are tried in platform order and the
+  outline format is sniffed before loading (`fontHasStbOutlines`).
+  imgui's stb rasterizer can only outline TrueType (`glyf`) and CFF1
+  (`CFF `) fonts; CFF2-only collections — Noto Sans CJK ships as one on
+  Android 14+ (`/system/fonts/NotoSansCJK-Regular.ttc`, 5 CFF2 faces) —
+  make `ImFontAtlas` silently fall back to its 13px built-in font, which
+  renders Chinese as tiny `?` marks. TrueType-flavoured files therefore
+  come first (`MiSansVF.ttf` on Xiaomi, `PingFang.ttc`/`STHeiti Light.ttc`
+  on Apple, `msyh.ttc` on Windows, `wqy-microhei.ttc` on Linux) and the
+  Noto collections are kept as a last resort, so a device that only ships
+  CFF2 fonts still falls back to the correctly-sized built-in font
+  instead of a 13px one. Loading a font at runtime on such a device means
+  bundling a TrueType CJK font.
 - **linuxArm64**: SDL3's static library references aarch64 libgcc
   outline-atomic helpers; a small `atomic_helpers.c` is compiled and
   linked automatically by the build.

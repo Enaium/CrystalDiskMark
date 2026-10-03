@@ -3,6 +3,9 @@
 package cn.enaium.crystaldiskmark.platform
 
 import kotlinx.cinterop.*
+import platform.posix.fclose
+import platform.posix.fopen
+import platform.posix.fread
 import platform.windisk.*
 
 /** Windows (mingw) file operations via the windisk cinterop. */
@@ -95,6 +98,21 @@ internal actual object NativeFileOps {
             setLength(fd, bytes.size.toLong())
         } finally {
             close(fd)
+        }
+    }
+
+    /**
+     * Read-only header read. `cdm_win_open` requests GENERIC_WRITE, which
+     * fails on read-only files (system fonts), so the CRT is used here.
+     */
+    actual fun readHeader(path: String, maxBytes: Int): ByteArray? {
+        val f = fopen(path, "rb") ?: return null
+        try {
+            val buf = ByteArray(maxBytes)
+            val n = buf.usePinned { fread(it.addressOf(0), 1uL, maxBytes.toULong(), f) }
+            return if (n == 0uL) null else buf.copyOf(n.toInt())
+        } finally {
+            fclose(f)
         }
     }
 }

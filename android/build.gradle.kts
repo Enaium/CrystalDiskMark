@@ -85,6 +85,10 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            // No release keystore is configured, so publish the release
+            // build signed with the debug key; otherwise the APK attached
+            // to a release is unsigned and cannot be installed.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {

@@ -70,6 +70,10 @@ interface PlatformIo {
     /** Read text file (UTF-8) or null. */
     fun readTextFile(path: String): String?
 
+    /** Reads up to [maxBytes] from the start of [path], or null when the
+     *  file cannot be read. Used to sniff binary file headers (fonts). */
+    fun readFileHeader(path: String, maxBytes: Int): ByteArray?
+
     /** Write text file (UTF-8). */
     fun writeTextFile(path: String, content: String)
 
