@@ -1,7 +1,9 @@
 import org.gradle.api.DefaultTask
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 import java.io.File
@@ -36,6 +38,11 @@ abstract class PrepareJniLibsTask : DefaultTask() {
     @get:Input
     abstract val abis: MapProperty<String, String>
 
+    /** Per-ABI libmain.so produced by the :app link tasks (content-hashed
+     *  so a relinked library invalidates this task's outputs). */
+    @get:InputFiles
+    abstract val sources: ConfigurableFileCollection
+
     @TaskAction
     fun run() {
         val bin = project.rootDir.toPath().resolve("app/build/bin").toFile()
@@ -52,6 +59,7 @@ abstract class PrepareJniLibsTask : DefaultTask() {
 val prepareJniLibs = tasks.register<PrepareJniLibsTask>("prepareJniLibs") {
     outputDir.set(layout.buildDirectory.dir("generated/jniLibs"))
     abis.set(androidAbis)
+    sources.from(androidAbis.keys.map { File(rootDir, "app/build/bin/$it/mainDebugShared/libmain.so") })
 }
 
 prepareJniLibs.configure {

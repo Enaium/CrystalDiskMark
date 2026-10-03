@@ -59,6 +59,18 @@ class MainWindowUi(
     private var scaleX: Float = 1f
     private var scaleY: Float = 1f
 
+    /**
+     * Irregular-screen safe-area insets in layout units
+     * (left, right, top, bottom); null = full window. Set by Main from
+     * the platform layer (Android punch holes / rounded corners).
+     */
+    var safeInsets: FloatArray? = null
+
+    /** Menu bar geometry for the current frame (inside the safe area). */
+    private var menuX = 0f
+    private var menuY = 0f
+    private var menuW = 0f
+
     private val colors = ThemeColors
 
     // ------------------------------------------------------------------
@@ -114,19 +126,31 @@ class MainWindowUi(
     // ------------------------------------------------------------------
     fun draw() {
         // Main window starts below the global menu bar (y = frame height)
-        // and spans the whole viewport below it. The SDL window is
-        // resizable; the fixed reference layout (sizeX x sizeY) is
-        // anchored at the top-left, and any extra space stays as window
-        // background below/right (matching the reference CDM behavior).
+        // and spans the rest of the viewport. On irregular screens the
+        // content is laid out inside the safe area (punch holes, rounded
+        // corners); the surrounding margin stays window background.
         val menuH = ImGui.getFrameHeight()
         val vw = ImGui.getIO().displaySize.x
         val vh = ImGui.getIO().displaySize.y
-        // Stretch the reference layout to fill the viewport (>= 1x).
-        scaleX = (vw / sizeX.toFloat()).coerceAtLeast(1f)
-        scaleY = ((vh - menuH) / sizeY.toFloat()).coerceAtLeast(1f)
-        ImGui.setNextWindowPos(ImVec2(0f, menuH), ImGuiCond.ALWAYS)
+        val ins = safeInsets
+        val inL = (ins?.get(0) ?: 0f).coerceIn(0f, vw * 0.45f)
+        val inR = (ins?.get(1) ?: 0f).coerceIn(0f, vw * 0.45f)
+        val inT = (ins?.get(2) ?: 0f).coerceIn(0f, (vh - menuH) * 0.45f)
+        val inB = (ins?.get(3) ?: 0f).coerceIn(0f, (vh - menuH) * 0.45f)
+        val areaX = inL
+        val areaY = inT + menuH
+        val areaW = (vw - inL - inR).coerceAtLeast(1f)
+        val areaH = (vh - menuH - inT - inB).coerceAtLeast(1f)
+        // The menu bar is drawn in its own window at the safe-area origin.
+        menuX = inL
+        menuY = inT
+        menuW = areaW
+        // Stretch the reference layout to fill the safe area (>= 1x).
+        scaleX = (areaW / sizeX.toFloat()).coerceAtLeast(1f)
+        scaleY = (areaH / sizeY.toFloat()).coerceAtLeast(1f)
+        ImGui.setNextWindowPos(ImVec2(areaX, areaY), ImGuiCond.ALWAYS)
         ImGui.setNextWindowSize(
-            ImVec2(vw, vh - menuH),
+            ImVec2(areaW, areaH),
             ImGuiCond.ALWAYS,
         )
         if (ImGui.begin(
@@ -158,8 +182,31 @@ class MainWindowUi(
     }
 
     private fun drawMainMenuBar() {
-        if (!ImGui.beginMainMenuBar()) return
+        // The bar lives in its own window so it can be placed inside the
+        // irregular-screen safe area (punch holes / rounded corners).
+        val topH = ImGui.getFrameHeight()
+        ImGui.pushStyleVarVec2(cn.enaium.imgui.ImGuiStyleVar.WINDOW_PADDING, ImVec2(0f, 0f))
+        ImGui.pushStyleVarFloat(cn.enaium.imgui.ImGuiStyleVar.WINDOW_ROUNDING, 0f)
+        ImGui.pushStyleVarFloat(cn.enaium.imgui.ImGuiStyleVar.WINDOW_BORDER_SIZE, 0f)
+        ImGui.setNextWindowPos(ImVec2(menuX, menuY), ImGuiCond.ALWAYS)
+        ImGui.setNextWindowSize(ImVec2(menuW, topH), ImGuiCond.ALWAYS)
+        if (!ImGui.begin(
+                "##topbar",
+                flags = cn.enaium.imgui.ImGuiWindowFlags.NO_TITLE_BAR or
+                    cn.enaium.imgui.ImGuiWindowFlags.NO_RESIZE or
+                    cn.enaium.imgui.ImGuiWindowFlags.NO_MOVE or
+                    cn.enaium.imgui.ImGuiWindowFlags.NO_SCROLLBAR or
+                    cn.enaium.imgui.ImGuiWindowFlags.NO_COLLAPSE or
+                    cn.enaium.imgui.ImGuiWindowFlags.NO_SAVED_SETTINGS or
+                    cn.enaium.imgui.ImGuiWindowFlags.MENU_BAR
+            )
+        ) {
+            ImGui.end()
+            ImGui.popStyleVar(3)
+            return
+        }
         ImGui.pushFont(fontRegular)
+        ImGui.beginMenuBar()
 
         if (ImGui.beginMenu(Lang.t("Menu.FILE"))) {
             if (ImGui.menuItem(Lang.t("Menu.EDIT_COPY"), "Ctrl+Shift+C")) onCopy()
@@ -315,8 +362,10 @@ class MainWindowUi(
             ImGui.endMenu()
         }
 
+        ImGui.endMenuBar()
         ImGui.popFont()
-        ImGui.endMainMenuBar()
+        ImGui.end()
+        ImGui.popStyleVar(3)
     }
 
     // ------------------------------------------------------------------

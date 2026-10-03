@@ -106,28 +106,35 @@ kotlin {
     tvosArm64 { binaries.framework("CrystalDiskMark") }
     tvosSimulatorArm64 { binaries.framework("CrystalDiskMark") }
 
+    // Android 15+ devices may use 16 KB memory pages; every shared object
+    // must have its LOAD segments aligned to at least 16 KB (lld defaults
+    // to 4 KB for the x86 and 32-bit ABIs).
     androidNativeArm64 {
         binaries.sharedLib("main") {
             konanAndroidLibDir("arm64-v8a")?.let { linkerOpts("-L$it") }
             linkerOpts("-Wl,--allow-multiple-definition")
+            linkerOpts("-Wl,-z,max-page-size=16384")
         }
     }
     androidNativeArm32 {
         binaries.sharedLib("main") {
             konanAndroidLibDir("armeabi-v7a")?.let { linkerOpts("-L$it") }
             linkerOpts("-Wl,--allow-multiple-definition")
+            linkerOpts("-Wl,-z,max-page-size=16384")
         }
     }
     androidNativeX64 {
         binaries.sharedLib("main") {
             konanAndroidLibDir("x86_64")?.let { linkerOpts("-L$it") }
             linkerOpts("-Wl,--allow-multiple-definition")
+            linkerOpts("-Wl,-z,max-page-size=16384")
         }
     }
     androidNativeX86 {
         binaries.sharedLib("main") {
             konanAndroidLibDir("x86")?.let { linkerOpts("-L$it") }
             linkerOpts("-Wl,--allow-multiple-definition")
+            linkerOpts("-Wl,-z,max-page-size=16384")
         }
     }
 

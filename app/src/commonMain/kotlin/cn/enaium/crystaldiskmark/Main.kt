@@ -78,6 +78,13 @@ fun runCrystalDiskMark(
     // corrects it to the exact menu bar height. Content bottom is the
     // last meter row (y=216*z + 48*z height = 264*z) plus padding.
     val initialHeight = (272 * zr).toInt() + 24
+    // Android: a resizable SDL window requests FULL_USER orientation,
+    // which follows the device rotation lock (and can leave the app in
+    // portrait). A landscape-only hint makes SDL request a fixed
+    // landscape orientation instead (SDLActivity.setOrientationBis).
+    if (SDL.getCurrentVideoDriver() == "android") {
+        SDL.setHint("SDL_ORIENTATIONS", "LandscapeLeft")
+    }
     val window = SDL.createWindow(
         title = "CrystalDiskMark",
         width = initialWidth,
@@ -361,6 +368,13 @@ fun runCrystalDiskMark(
             val title = if (statusMessage.isEmpty()) "CrystalDiskMark 9.0.3" else statusMessage
             window.title = title
             lastStatus = statusMessage
+        }
+        // Irregular-screen safe insets (Android punch holes / rounded
+        // corners), mapped from screen pixels into layout units.
+        mainUi.safeInsets = io.windowSafeInsets()?.let { safe ->
+            val sx = window.size.x.toFloat() / max(window.sizeInPixels.x, 1)
+            val sy = window.size.y.toFloat() / max(window.sizeInPixels.y, 1)
+            floatArrayOf(safe[0] * sx, safe[1] * sx, safe[2] * sy, safe[3] * sy)
         }
         mainUi.draw()
         settingsDialog.draw()

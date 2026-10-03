@@ -44,6 +44,14 @@ interface PlatformIo {
     /** Home directory. */
     fun homeDir(): String
 
+    /**
+     * Irregular-screen safe-area insets in **screen pixels**
+     * (left, right, top, bottom), or null when the platform does not
+     * report any (desktop). Used on Android to keep the UI clear of
+     * punch holes and rounded display corners.
+     */
+    fun windowSafeInsets(): IntArray?
+
     /** Config file directory (created if needed). */
     fun configDir(): String
 

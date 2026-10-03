@@ -47,6 +47,16 @@ object NativePlatformIo : PlatformIo {
         return env.toKString()
     }
 
+    override fun windowSafeInsets(): IntArray? {
+        // Published by the Android MainActivity via nativeSetenv; absent
+        // on desktop platforms (returns null -> full-window layout).
+        val l = getenv("CDM_SAFE_LEFT")?.toKString()?.toIntOrNull() ?: return null
+        val r = getenv("CDM_SAFE_RIGHT")?.toKString()?.toIntOrNull() ?: return null
+        val t = getenv("CDM_SAFE_TOP")?.toKString()?.toIntOrNull() ?: return null
+        val b = getenv("CDM_SAFE_BOTTOM")?.toKString()?.toIntOrNull() ?: return null
+        return intArrayOf(l, r, t, b)
+    }
+
     override fun configDir(): String {
         val home = homeDir()
         val dir = "$home/.CrystalDiskMark"

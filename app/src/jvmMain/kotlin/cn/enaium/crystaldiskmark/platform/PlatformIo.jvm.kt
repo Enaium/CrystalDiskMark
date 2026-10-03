@@ -58,6 +58,8 @@ object JvmPlatformIo : PlatformIo {
 
     override fun homeDir(): String = System.getProperty("user.home")
 
+    override fun windowSafeInsets(): IntArray? = null
+
     override fun configDir(): String {
         val dir = File(homeDir(), ".CrystalDiskMark")
         dir.mkdirs()
